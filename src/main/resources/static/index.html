@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <title>Mock workers</title>
+</head>
+<body>
+    <div id="app" class="container" >   
+        <div class="row">
+            <div class="col-1"></div>
+            <div id="clusters" class="col-10">
+                <img src="https://docs.camunda.io/img/black-C.png" class="m-3" width="75" height="75"/>               
+                <div class="accordion" id="accordion">
+                    <div class="card">
+                      <div class="card-header" id="headingOne">
+                        <h5 class="mb-0">
+                          <button type="button" class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                            Create Cluster
+                          </button>
+                        </h5>
+                      </div>
+                  
+                      <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+                        <div class="card-body" id="createCluster">
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Cluster Name</span>
+                                </div>
+                                <input id ="clusterName" type="text" class="form-control" aria-describedby="basic-addon1" v-model="clusterName" placeholder="Cluster Name"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Cluster Id</span>
+                                </div>
+                                <input id ="clusterId" type="text" class="form-control" aria-describedby="basic-addon1" v-model="clusterId" placeholder="Cluster Id"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Cluster Region</span>
+                                </div>
+                                <input id ="clusterRegion" type="text" class="form-control" aria-describedby="basic-addon1" v-model="clusterRegion" placeholder="Cluster Region"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Client Id</span>
+                                </div>
+                                <input id ="clientId" type="text" class="form-control" aria-describedby="basic-addon1" v-model="clientId" placeholder="Client Id"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Client Secret</span>
+                                </div>
+                                <input id ="clientSecret" type="text" class="form-control" aria-describedby="basic-addon1" v-model="clientSecret" placeholder="Client Secret"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Client Credentials File</span>
+                                  </div>
+                                  <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="credFile" v-on:change="uploadFile" accept=".txt">
+                                    <label class="custom-file-label" for="credFile" id="credFileLabel"></label>
+                                  </div>
+                                <button type="button" class="btn btn-primary ml-3" v-on:click="createClusterAction" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">Create</button>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card" v-show="clusters.length > 0">
+                        <div class="card-header" id="headingTwo">
+                          <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                                Active Clusters - {{this.clusterChosenName === '' ? 'None' : this.clusterChosenName}}
+                            </button>
+                          </h5>
+                        </div>
+                    
+                        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+                          <div class="card-body" id="createCluster">
+                            <div v-show="clusters.length > 0" class="input-group mb-3">
+                                <select class="custom-select" v-show="clusters.length > 0" @change="clusterChosen($event)" v-model="clusterSelected">
+                                    <option v-for="cluster in clusters" :value="cluster.name">
+                                        {{ cluster.name +" - "+ cluster.id }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="clusterAction" v-show="isClusterChosen">
+                                <button v-on:click="deleteCluster" ype="button" class="btn btn-danger">Delete</button>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+
+                    <div class="card" v-show="isWorkersVisible">
+                        <div class="card-header" id="headingThree">
+                          <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                                Create worker
+                            </button>
+                          </h5>
+                        </div>
+                        <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion" >
+                          <div class="card-body" id="createWorker">
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">BPMN File</span>
+                                  </div>
+                                  <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="BPMNFile" v-on:change="uploadBPMNFile" accept=".bpmn">
+                                    <label class="custom-file-label" for="BPMNFile" id="BPMNFileLabel"></label>
+                                  </div>
+                                <button type="button" class="btn btn-primary ml-3" v-on:click="importBPMN">Import</button>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Worker Name</span>
+                                </div>
+                                <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="workerName" placeholder="Worker Name"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Worker Type</span>
+                                </div>
+                                <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="workerType" placeholder="Worker Type"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Variables (JSON)</span>
+                                </div>
+                                <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="variables" placeholder="Mock return variables (JSON)"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Work Duration (sec.)</span>
+                                </div>
+                                <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="workLengthInSec" placeholder="Work Duration in Seconds"/>
+                            </div>
+                            <div class="input-group mb-3">
+                                <button  type="button" class="btn btn-primary" v-on:click="createWorkerAction">Create</button>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card" v-show="workers.length > 0">
+                        <div class="card-header" id="headingFour">
+                          <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseFour" aria-expanded="true" aria-controls="collapseFour">
+                                Config. Worker - {{this.workerChosenName === '' ? 'None' : this.workerChosenName}}
+                            </button>
+                          </h5>
+                        </div>
+                    
+                        <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordion">
+                          <div class="card-body" id="createWorker">  
+                            <div v-show="workers.length > 0" class="input-group mb-3">
+                                <select class="custom-select" v-model="workerSelected" @mouseover="refreshListWorkers" @change="workerChosen($event)" v-model="workerSelected">
+                                    <option v-for="worker in workers" :value="worker.name">
+                                        {{ worker.name +" - "+ worker.type }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div v-show="isWorkerChosen">
+                                <div class="input-group mb-1">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Running:</span>
+                                    </div>
+                                    <input type="text" readonly class="form-control" aria-describedby="basic-addon1" v-model="isWorkerRunning"/>
+                                    <button v-show="isWorkerRunning===false" class="btn btn-success ml-1" v-on:click="startWorker">Start</button>
+                                    <button id ="stopBtn" v-show="isWorkerRunning===true" class="btn btn-warning ml-1" v-on:click="stopWorker">Stop</button>
+                                </div>
+                                <div class="input-group mb-1">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">On Error:</span>
+                                    </div>
+                                    <input type="text" readonly class="form-control" aria-describedby="basic-addon1" v-model="isWorkerOnError"/>
+                                    <button v-show="isWorkerOnError===false" class="btn btn-dark ml-1" v-on:click="setErrorOnWorker">Set Error</button>
+                                    <button v-show="isWorkerOnError===true" class="btn btn-light ml-1" v-on:click="clearErrorOnWorker">Clear Error</button>
+                                </div>
+                                <div class="input-group mb-1">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Current Work Duration:</span>
+                                    </div>
+                                    <input type="text" readonly class="form-control" aria-describedby="basic-addon1" v-model="currentWorkerDuration"/>
+                                    <button class="btn btn-info ml-1" v-on:click="resetWorkDurationWorker">Reset Work Duration</button>
+                                </div>
+                                <div class="input-group mb-1">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">New Work Duration:</span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="workDurationWorker"/>
+                                    <button class="btn btn-primary ml-1" v-on:click="setWorkDurationWorker">Set Work Duration</button>
+                                </div>
+                                <div class="input-group mb-1">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Current Variables</span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="currentVariables" readonly/>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">New Variables</span>
+                                    </div>
+                                    <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="newVariables" placeholder="Mock return variables (JSON)"/>
+                                    <button class="btn btn-primary ml-1" v-on:click="setNewVariables">Set Variables</button>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <button class="btn btn-danger" v-on:click="deleteWorker" class="fixed-content-end">Delete</button>
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="card" v-show="isWorkersVisible">
+                            <div class="card-header" id="headingFive">
+                              <h5 class="mb-0">
+                                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseFive" aria-expanded="true" aria-controls="collapseFive">
+                                    Create instances
+                                </button>
+                              </h5>
+                            </div>
+                            <div id="collapseFive" class="collapse" aria-labelledby="headingFive" data-parent="#accordion" >
+                              <div class="card-body" id="createInstances">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Process Id</span>
+                                    </div>
+                                    <input :readonly="creationRunning===true" type="text" class="form-control" aria-describedby="basic-addon1" v-model="processId" placeholder="Process Id"/>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Creation interval (sec.)</span>
+                                    </div>
+                                    <input :readonly="creationRunning===true" type="text" class="form-control" aria-describedby="basic-addon1" v-model="creationInterval" placeholder="Creation interval (sec.)"/>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="basic-addon1">Variables (JSON)</span>
+                                    </div>
+                                    <input :readonly="creationRunning===true" type="text" class="form-control" aria-describedby="basic-addon1" v-model="instanceVariables" placeholder="Mock instance variables (JSON)"/>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <button v-show="creationRunning===false" type="button" class="btn btn-success" v-on:click="startCreation">Start</button>
+                                    <button v-show="creationRunning===true" type="button" class="btn btn-danger" v-on:click="stopCreation">Stop</button>
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-1"></div>
+        </div>
+        <input type="text" id="BPMNContent" style="display:none"/>
+    </div>
+
+    <script>
+        var app = Vue.createApp({
+                data: function() {
+                    return {
+                        endpoint: 'http://localhost:8080',
+                        clusterName: '' ,
+                        clusterId: '',
+                        clusterRegion: '',
+                        clientId: '',
+                        clientSecret: '',
+                        workerName: '',
+                        workerType: '',
+                        variables: '',
+                        clusterChosenName: '',
+                        workerChosenName: '',
+                        workLengthInSec: 0,
+                        workDurationWorker: 0,
+                        newVariables: '',
+                        currentVariables: '',
+                        isWorkersVisible: false,
+                        isClusterChosen: false,
+                        isWorkerChosen: false,
+                        isWorkerRunning: true,
+                        isWorkerOnError: false,
+                        currentWorkerDuration : 0,
+                        clusterSelected: {},
+                        workerSelected: {},
+                        workers: [],
+                        clusters: [],
+                        processId: '',
+                        creationInterval: 0,
+                        instanceVariables: '',
+                        creationRunning: false,
+                    }
+                },
+                methods: {
+                    createClusterAction: function() {
+                        
+                        if(this.clusterId === '') this.clusterId = document.getElementById("clusterId").value;
+                        if(this.clusterRegion === '') this.clusterRegion = document.getElementById("clusterRegion").value;
+                        if(this.clientId === '') this.clientId = document.getElementById("clientId").value;
+                        if(this.clientSecret === '') this.clientSecret = document.getElementById("clientSecret").value;
+
+
+                        axios.get(this.endpoint+'/clusters/add-cluster?name='+this.clusterName+'&clientId='+this.clientId+'&clientSecret='+this.clientSecret+'&clusterId='+this.clusterId+'&region='+this.clusterRegion).then(response => {
+                            this.updateListOfClusters();
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+
+                        this.clusterName = '';
+                        this.clusterId = '';
+                        this.clusterRegion = '';
+                        this.clientId = '';
+                        this.clientSecret = '';
+                        document.getElementById("credFile").files = null;
+                        document.getElementById("credFile").value = null;
+                        document.getElementById("credFileLabel").innerHTML = null;
+                    },
+                    deleteCluster: function() {
+                        //TODO
+                    },
+                    clusterChosen: function(event) {
+                        this.isClusterChosen = true;
+                        this.isWorkersVisible = true;
+                        this.clusterChosenName = event.target.value;
+                        this.updateListOfWorkers(this.clusterChosenName);
+                    },
+                    workerChosen: function(event) {
+                        this.isWorkerChosen = true;
+                        this.workerChosenName = event.target.value;
+                        this.updateStatus(this.workerChosenName);
+                    },
+                    createWorkerAction: function() {        
+
+                        this.createWorker(this.clusterChosenName, this.workerName, this.workerType, this.variables, this.workLengthInSec)
+                        this.workerName = '';
+                        this.workerType = '';
+                        this.variables = '';
+                        this.workLengthInSec = null;
+                    },
+                    startWorker: function() {
+                        axios.get(this.endpoint+'/workers/start-worker?name='+this.workerChosenName).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    stopWorker: function() {
+                        document.getElementById("stopBtn").innerText = "Stopping";
+                        axios.get(this.endpoint+'/workers/stop-worker?name='+this.workerChosenName).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                            document.getElementById("stopBtn").innerText = "Stop";
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    deleteWorker: function() {
+                        //TODO
+                    },
+                    setErrorOnWorker: function() {
+                        axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    clearErrorOnWorker: function() {
+                        axios.get(this.endpoint+'/workers/clear-error-worker?name='+this.workerChosenName).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    setWorkDurationWorker: function() {
+                        axios.get(this.endpoint+'/workers/set-work-duration-worker?name='+this.workerChosenName+'&workDurationInSec='+this.workDurationWorker).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    resetWorkDurationWorker: function() {
+                        axios.get(this.endpoint+'/workers/reset-work-duration-worker?name='+this.workerChosenName).then(response => {
+                            this.updateStatus(this.workerChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    updateListOfClusters: function()
+                    {
+                        axios.get(this.endpoint+'/clusters/list-clusters').then(response => {
+                            this.clusters = [];
+                            response.data.forEach(element => {
+                                this.clusters.push({name:element.name, id:element.clusterId})})
+                            }).catch(function (error) {
+                                if (error.response) {
+                                    console.log(error.response.data);
+                                    console.log(error.response.status);
+                                    console.log(error.response.headers);
+                                } else if (error.request) {
+                                    console.log(error.request);
+                                } else {
+                                    console.log('Error', error.message);
+                                }
+                                console.log(error.config);
+                            });
+                    },
+                    updateListOfWorkers: function(clusterChosenName)
+                    {
+                        axios.get(this.endpoint+'/workers/list-cluster-workers?clusterChosenName='+clusterChosenName).then(response => {
+                            response.data.forEach(element => {
+                                var w = {name:element.name, type:element.type};
+                                var found = -1;
+
+                                for(var i=0; i<this.workers.length; i++) {
+                                    if(this.workers[i].name == w.name) {
+                                        found = i;
+                                        break;
+                                    }
+                                }
+
+                                if(found == -1)
+                                {
+                                    this.workers.push(w);
+                                }
+                            })
+                            }).catch(function (error) {
+                                if (error.response) {
+                                    console.log(error.response.data);
+                                    console.log(error.response.status);
+                                    console.log(error.response.headers);
+                                } else if (error.request) {
+                                    console.log(error.request);
+                                } else {
+                                    console.log('Error', error.message);
+                                }
+                                console.log(error.config);
+                            });
+                    },
+                    updateStatus : function(workerName)
+                    {
+                        axios.get(this.endpoint+'/workers/worker-status?name='+workerName).then(response => {
+                            console.log(response.data);
+                            this.isWorkerRunning = !response.data.stopped;
+                            this.isWorkerOnError = response.data.onError;
+                            this.currentWorkerDuration = response.data.workDurationInSec;
+                            this.currentVariables = response.data.variables;
+                            }).catch(function (error) {
+                                if (error.response) {
+                                    console.log(error.response.data);
+                                    console.log(error.response.status);
+                                    console.log(error.response.headers);
+                                } else if (error.request) {
+                                    console.log(error.request);
+                                } else {
+                                    console.log('Error', error.message);
+                                }
+                                console.log(error.config);
+                            });
+                    },
+                    replaceSpecialCharsInJSON : function(str)
+                    {
+                        str = str.replace(/"/g,'%22');
+                        str = str.replace(/{/g,'%7B');
+                        str = str.replace(/}/g,'%7D');
+                        str = str.replace(/:/g,'%3A');
+                        console.log(str);
+                        return str;
+                    },
+                    uploadFile : function() {
+                        var file = document.getElementById("credFile").files[0];
+                        document.getElementById("credFileLabel").innerHTML = file.name;
+                        if (file) {
+                            var reader = new FileReader();
+                            
+                            reader.onload = function (evt) {
+                                var str = evt.target.result.split('=');
+                                var clusterURL = str[1].substring(str[1].indexOf("'") + 1, str[1].lastIndexOf("'"));
+
+                                document.getElementById("clusterId").value = clusterURL.split('.')[0];
+                                document.getElementById("clusterRegion").value = clusterURL.split('.')[1];
+                                document.getElementById("clientId").value = str[2].substring(str[2].indexOf("'") + 1, str[2].lastIndexOf("'"));
+                                document.getElementById("clientSecret").value = str[3].substring(str[3].indexOf("'") + 1, str[3].lastIndexOf("'"));
+                            }
+                            reader.readAsText(file, "UTF-8");
+                            this.clusterName = file.name.substring(27,file.name.length-4);
+                        }
+                    },
+                    uploadBPMNFile : function(){
+                        var file = document.getElementById("BPMNFile").files[0];
+                        document.getElementById("BPMNFileLabel").innerHTML = file.name;
+                        if (file) {
+                            var reader = new FileReader();
+                            
+                            reader.onload = function (evt) {
+                                document.getElementById("BPMNContent").value = evt.target.result;
+                            }
+                            reader.readAsText(file, "UTF-8");
+                        }
+                    },
+                    importBPMN : function(){
+                        var data = document.getElementById("BPMNContent").value;
+                        var parser = new DOMParser();
+                        var xmlDoc = parser.parseFromString(data,"text/xml");
+                        var serviceTasks = xmlDoc.getElementsByTagName('bpmn:serviceTask');
+                        
+                        this.processId = xmlDoc.getElementsByTagName('bpmn:process')[0].attributes.id.nodeValue;
+
+                        for(var idx in serviceTasks)
+                        {
+                            if(idx === "length") break;
+                            var wn = serviceTasks[idx].attributes.name.nodeValue;
+                            var wt = serviceTasks[idx].childNodes[1].childNodes[1].attributes.type.nodeValue;
+                            console.log(wn +' - '+wt);
+                            this.createWorker(this.clusterChosenName, wn, wt, '', 0);
+                        }
+                        document.getElementById("BPMNFile").files = null;
+                        document.getElementById("BPMNFileLabel").innerHTML = null;
+                        document.getElementById("BPMNContent").value = null;                      
+                    },
+                    setNewVariables : function (){
+                        axios.get(this.endpoint+'/workers/set-variables?name='+this.workerChosenName+'&variables='+this.replaceSpecialCharsInJSON(this.newVariables)).then(response => {
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                        this.newVariables = '';
+                        this.updateStatus(this.workerChosenName);
+                    },
+                    createWorker : function(clusterChosenName, workerName, workerType, variables, workLengthInSec){
+                        axios.get(this.endpoint+'/workers/create-worker?clusterName='+clusterChosenName+'&name='+workerName+'&type='+workerType+'&variables='+this.replaceSpecialCharsInJSON(variables)+'&workLengthInSec='+workLengthInSec).then(response => {
+                            this.updateListOfWorkers(this.clusterChosenName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    refreshListWorkers : function(){
+                        this.updateListOfWorkers(this.clusterChosenName);
+                    },
+                    startCreation : function(){
+                        axios.get(this.endpoint+'/instances/start-instances?clusterName='+this.clusterChosenName+'&processId='+this.processId+'&frequencyInSec='+this.creationInterval+'&variables='+this.replaceSpecialCharsInJSON(this.instanceVariables)).then(response => {
+                            this.updateInstanceCreationStatus();
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    stopCreation : function(){
+                        axios.get(this.endpoint+'/instances/stop-instances?&processId='+this.processId).then(response => {
+                            this.updateInstanceCreationStatus();
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    updateInstanceCreationStatus : function(){
+                        axios.get(this.endpoint+'/instances/get-status?&processId='+this.processId).then(response => {
+                            this.creationRunning = response.data.running;
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    }           
+                },
+                beforeMount()
+                {
+                    this.updateListOfClusters();
+                }
+            });
+        app.mount('#app');
+    </script>
+</body>
+</html>

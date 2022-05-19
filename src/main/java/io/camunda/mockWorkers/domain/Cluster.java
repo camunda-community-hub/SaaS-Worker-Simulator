@@ -29,6 +29,7 @@ public class Cluster {
                 .withClientId(clientId)
                 .withClientSecret(clientSecret)
                 .withRegion(region)
+				.numJobWorkerExecutionThreads(32)
                 .build();
     }
 

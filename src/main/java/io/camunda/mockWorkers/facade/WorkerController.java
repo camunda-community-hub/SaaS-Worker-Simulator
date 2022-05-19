@@ -33,7 +33,7 @@ public class WorkerController {
     }
 
     @GetMapping("/create-worker")
-    public boolean createWorker(String clusterName, String name, String type, String variables, int workLengthInSec) throws Exception {
+    public boolean createWorker(String clusterName, String name, String type, String variables, int workLengthInSec, Double errorPercentage) throws Exception {
         LOG.info("IN - createWorker - " + clusterName + " - "+ name + " - "+ type + " - "+ variables + " - "+ workLengthInSec);
         try {
         synchronized (this)
@@ -105,10 +105,11 @@ public class WorkerController {
     }
 
     @GetMapping("/set-error-worker")
-    public boolean setErrorOnWorker(String name) throws Exception {
+    public boolean setErrorOnWorker(String name, Double errorPercentage) throws Exception {
         Worker worker = this.getWorker(name);
         try {
             worker.generateError();
+            worker.setPercentError(errorPercentage);
         }catch (Exception ex)
         {
             throw new Exception("Failed to set error for worker: "+ ex.getMessage());

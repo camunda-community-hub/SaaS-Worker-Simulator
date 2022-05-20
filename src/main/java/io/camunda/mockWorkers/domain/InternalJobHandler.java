@@ -4,16 +4,20 @@ import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 
+import java.util.Random;
+
 public class InternalJobHandler implements JobHandler {
 
     private String variables;
     private int workDurationInSec;
     private boolean error;
+    private Double percentError;
 
     public InternalJobHandler(String variables,int workDurationInSec) {
         this.variables = variables;
         this.workDurationInSec = workDurationInSec;
         this.error = false;
+        this.percentError = new Double(0);
     }
 
     public String getStatus()
@@ -48,12 +52,23 @@ public class InternalJobHandler implements JobHandler {
         return this.workDurationInSec;
     }
 
+    public Double getPercentError() { return this.percentError; }
+
+    public void setPercentError(Double pErr) { this.percentError = pErr; }
+
     @Override
     public void handle(final JobClient client, final ActivatedJob job) {
         if(error)
         {
             //TODO: error generation dynamic get code and message in the input for error
-            client.newThrowErrorCommand(job.getKey()).errorCode("0").errorMessage("Dummy Error!").send();
+            Random r = new Random();
+            int isItError = r.nextInt(100);
+
+            if(isItError < this.percentError) {
+                client.newThrowErrorCommand(job.getKey()).errorCode("0").errorMessage("Dummy Error!").send();
+            } else {
+                client.newCompleteCommand(job.getKey()).variables(variables).send().join();
+            }
         }else {
             if (this.variables == null || this.variables.isEmpty()) {
                 variables = "{}";

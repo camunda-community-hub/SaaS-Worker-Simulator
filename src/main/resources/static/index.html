@@ -12,11 +12,11 @@
     <title>Mock workers</title>
 </head>
 <body>
-    <div id="app" class="container" >   
+    <div id="app" class="container" >
         <div class="row">
             <div class="col-1"></div>
             <div id="clusters" class="col-10">
-                <img src="https://docs.camunda.io/img/black-C.png" class="m-3" width="75" height="75"/>               
+                <img src="https://docs.camunda.io/img/black-C.png" class="m-3" width="75" height="75"/>
                 <div class="accordion" id="accordion">
                     <div class="card">
                       <div class="card-header" id="headingOne">
@@ -26,7 +26,7 @@
                           </button>
                         </h5>
                       </div>
-                  
+
                       <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
                         <div class="card-body" id="createCluster">
                             <div class="input-group mb-3">
@@ -81,7 +81,7 @@
                             </button>
                           </h5>
                         </div>
-                    
+
                         <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
                           <div class="card-body" id="createCluster">
                             <div v-show="clusters.length > 0" class="input-group mb-3">
@@ -157,9 +157,9 @@
                             </button>
                           </h5>
                         </div>
-                    
+
                         <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordion">
-                          <div class="card-body" id="createWorker">  
+                          <div class="card-body" id="createWorker">
                             <div v-show="workers.length > 0" class="input-group mb-3">
                                 <select class="custom-select" v-model="workerSelected" @mouseover="refreshListWorkers" @change="workerChosen($event)" v-model="workerSelected">
                                     <option v-for="worker in workers" :value="worker.name">
@@ -183,6 +183,13 @@
                                     <input type="text" readonly class="form-control" aria-describedby="basic-addon1" v-model="isWorkerOnError"/>
                                     <button v-show="isWorkerOnError===false" class="btn btn-dark ml-1" v-on:click="setErrorOnWorker">Set Error</button>
                                     <button v-show="isWorkerOnError===true" class="btn btn-light ml-1" v-on:click="clearErrorOnWorker">Clear Error</button>
+                                </div>
+                                <div v-show="isWorkerOnError===true" class="input-group mb-1">
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Error Percent:</span>
+                                  </div>
+                                  <input type="text" class="form-control" v-on:change="setErrorOnWorker" aria-describedby="basic-addon1" v-model="errorPercentage"/>
+                                  <!-- button class="btn btn-dark ml-1" v-on:click="setErrorOnWorker">Set Error Percentage</button -->
                                 </div>
                                 <div class="input-group mb-1">
                                     <div class="input-group-prepend">
@@ -294,11 +301,12 @@
                         creationInterval: 0,
                         instanceVariables: '',
                         creationRunning: false,
+                        errorPercentage: 0,
                     }
                 },
                 methods: {
                     createClusterAction: function() {
-                        
+
                         if(this.clusterId === '') this.clusterId = document.getElementById("clusterId").value;
                         if(this.clusterRegion === '') this.clusterRegion = document.getElementById("clusterRegion").value;
                         if(this.clientId === '') this.clientId = document.getElementById("clientId").value;
@@ -343,7 +351,7 @@
                         this.workerChosenName = event.target.value;
                         this.updateStatus(this.workerChosenName);
                     },
-                    createWorkerAction: function() {        
+                    createWorkerAction: function() {
 
                         this.createWorker(this.clusterChosenName, this.workerName, this.workerType, this.variables, this.workLengthInSec)
                         this.workerName = '';
@@ -389,7 +397,7 @@
                         //TODO
                     },
                     setErrorOnWorker: function() {
-                        axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName).then(response => {
+                        axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName+'&errorPercentage='+this.errorPercentage).then(response => {
                             this.updateStatus(this.workerChosenName);
                         }).catch(function (error) {
                         if (error.response) {
@@ -539,7 +547,7 @@
                         document.getElementById("credFileLabel").innerHTML = file.name;
                         if (file) {
                             var reader = new FileReader();
-                            
+
                             reader.onload = function (evt) {
                                 var str = evt.target.result.split('=');
                                 var clusterURL = str[1].substring(str[1].indexOf("'") + 1, str[1].lastIndexOf("'"));
@@ -558,7 +566,7 @@
                         document.getElementById("BPMNFileLabel").innerHTML = file.name;
                         if (file) {
                             var reader = new FileReader();
-                            
+
                             reader.onload = function (evt) {
                                 document.getElementById("BPMNContent").value = evt.target.result;
                             }
@@ -570,7 +578,7 @@
                         var parser = new DOMParser();
                         var xmlDoc = parser.parseFromString(data,"text/xml");
                         var serviceTasks = xmlDoc.getElementsByTagName('bpmn:serviceTask');
-                        
+
                         this.processId = xmlDoc.getElementsByTagName('bpmn:process')[0].attributes.id.nodeValue;
 
                         for(var idx in serviceTasks)
@@ -583,7 +591,7 @@
                         }
                         document.getElementById("BPMNFile").files = null;
                         document.getElementById("BPMNFileLabel").innerHTML = null;
-                        document.getElementById("BPMNContent").value = null;                      
+                        document.getElementById("BPMNContent").value = null;
                     },
                     setNewVariables : function (){
                         axios.get(this.endpoint+'/workers/set-variables?name='+this.workerChosenName+'&variables='+this.replaceSpecialCharsInJSON(this.newVariables)).then(response => {
@@ -668,7 +676,7 @@
                         }
                         console.log(error.config);
                         });
-                    }           
+                    }
                 },
                 beforeMount()
                 {

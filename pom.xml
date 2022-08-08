@@ -17,7 +17,7 @@
     <properties>
         <maven.compiler.source>16</maven.compiler.source>
         <maven.compiler.target>16</maven.compiler.target>
-        <zeebe.version>8.0.2</zeebe.version>
+        <zeebe.version>8.0.5</zeebe.version>
         <spring.version>2.7.0</spring.version>
         <springdoc.version>1.6.9</springdoc.version>
         <gson.version>2.9.0</gson.version>

@@ -189,7 +189,10 @@
                                     <span class="input-group-text" id="basic-addon1">Error Percent:</span>
                                   </div>
                                   <input type="text" class="form-control" v-on:change="setErrorOnWorker" aria-describedby="basic-addon1" v-model="errorPercentage"/>
-                                  <!-- button class="btn btn-dark ml-1" v-on:click="setErrorOnWorker">Set Error Percentage</button -->
+                                  <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Error Code:</span>
+                                  </div>
+                                  <input type="text" class="form-control" v-on:change="setErrorOnWorker" aria-describedby="basic-addon1" v-model="errorCode"/>
                                 </div>
                                 <div class="input-group mb-1">
                                     <div class="input-group-prepend">
@@ -260,6 +263,56 @@
                             </div>
                           </div>
                         </div>
+
+                        <div class="card" v-show="isWorkersVisible">
+                            <div class="card-header" id="headingSix">
+                              <h5 class="mb-0">
+                                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseSix" aria-expanded="true" aria-controls="collapseSix">
+                                    Send Message
+                                </button>
+                              </h5>
+                            </div>
+                            <div id="collapseSix" class="collapse" aria-labelledby="headingSix" data-parent="#accordion" >
+                                <div class="card-body" id="sendMessage">
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Messages from BPMN file</span>
+                                            <div class="input-group-text">
+                                              <input type="checkbox" aria-label="" v-model="fromBPMNchecked">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="input-group mb-3" v-show="fromBPMNchecked===false">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="basic-addon1">Message Name</span>
+                                        </div>
+                                        <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="messageName" placeholder="Message Name"/>
+                                    </div>
+                                    <div v-show="messages.length > 0 && fromBPMNchecked===true" class="input-group mb-3">
+                                        <select class="custom-select" v-show="messages.length > 0" v-model="messageSelected">
+                                            <option v-for="message in messages" :value="message.name">
+                                                {{ message.name +" - "+ message.id }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="basic-addon1">Correlation Key value</span>
+                                        </div>
+                                        <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="correlationKey" placeholder="Correlation Key value"/>
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="basic-addon1">Variables (JSON)</span>
+                                        </div>
+                                        <input type="text" class="form-control" aria-describedby="basic-addon1" v-model="messageVariables" placeholder="Message variables (JSON)"/>
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <button type="button" class="btn btn-success" v-on:click="sendMessage">Send Message</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -302,6 +355,13 @@
                         instanceVariables: '',
                         creationRunning: false,
                         errorPercentage: 0,
+                        errorCode: '0',
+                        messageName: '',
+                        correlationKey: '',
+                        messageVariables: '',
+                        fromBPMNchecked: true,
+                        messageSelected: {},
+                        messages: []
                     }
                 },
                 methods: {
@@ -345,6 +405,7 @@
                         this.isWorkersVisible = true;
                         this.clusterChosenName = event.target.value;
                         this.updateListOfWorkers(this.clusterChosenName);
+                        this.getRegisteredMessages(this.clusterChosenName);
                     },
                     workerChosen: function(event) {
                         this.isWorkerChosen = true;
@@ -397,7 +458,7 @@
                         //TODO
                     },
                     setErrorOnWorker: function() {
-                        axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName+'&errorPercentage='+this.errorPercentage).then(response => {
+                        axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName+'&errorPercentage='+this.errorPercentage+'&errorCode='+this.errorCode).then(response => {
                             this.updateStatus(this.workerChosenName);
                         }).catch(function (error) {
                         if (error.response) {
@@ -578,6 +639,7 @@
                         var parser = new DOMParser();
                         var xmlDoc = parser.parseFromString(data,"text/xml");
                         var serviceTasks = xmlDoc.getElementsByTagName('bpmn:serviceTask');
+                        var messages = xmlDoc.getElementsByTagName('bpmn:message');
 
                         this.processId = xmlDoc.getElementsByTagName('bpmn:process')[0].attributes.id.nodeValue;
 
@@ -589,6 +651,16 @@
                             console.log(wn +' - '+wt);
                             this.createWorker(this.clusterChosenName, wn, wt, '', 0);
                         }
+
+                        for(var idx in messages)
+                        {
+                            if(idx === "length") break;
+                            var mn = messages[idx].attributes.name.nodeValue;
+                            var mid = messages[idx].attributes.id.nodeValue;
+                            console.log(wn +' - '+wt);
+                            this.registerMessage(this.clusterChosenName, mn, mid);
+                        }
+
                         document.getElementById("BPMNFile").files = null;
                         document.getElementById("BPMNFileLabel").innerHTML = null;
                         document.getElementById("BPMNContent").value = null;
@@ -676,6 +748,71 @@
                         }
                         console.log(error.config);
                         });
+                    },
+                    sendMessage : function()
+                    {
+                        axios.get(this.endpoint+'/messages/send-message?clusterName='+this.clusterChosenName+'&messageName='+(this.fromBPMNchecked ? this.messageSelected : this.messageName)+'&correlationKey='+this.correlationKey+'&variables='+this.replaceSpecialCharsInJSON(this.messageVariables)).then(response => {
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    registerMessage: function(clusterName, messageName, messageId)
+                    {
+                        axios.get(this.endpoint+'/messages/register-message?clusterName='+clusterName+'&messageName='+messageName+'&messageId='+messageId).then(response => {
+                            this.getRegisteredMessages(clusterName);
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    getRegisteredMessages: function(clusterName)
+                    {
+                        axios.get(this.endpoint+'/messages/get-messages?clusterName='+clusterName).then(response => {
+                            response.data.forEach(element => {
+                                var m = {name:element.name, id:element.id};
+                                var found = -1;
+
+                                for(var i=0; i<this.messages.length; i++) {
+                                    if(this.messages[i].name == m.name) {
+                                        found = i;
+                                        break;
+                                    }
+                                }
+
+                                if(found == -1)
+                                {
+                                    this.messages.push(m);
+                                }
+                            })
+                            }).catch(function (error) {
+                                if (error.response) {
+                                    console.log(error.response.data);
+                                    console.log(error.response.status);
+                                    console.log(error.response.headers);
+                                } else if (error.request) {
+                                    console.log(error.request);
+                                } else {
+                                    console.log('Error', error.message);
+                                }
+                                console.log(error.config);
+                            });
                     }
                 },
                 beforeMount()

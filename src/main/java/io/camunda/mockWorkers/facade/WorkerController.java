@@ -105,11 +105,12 @@ public class WorkerController {
     }
 
     @GetMapping("/set-error-worker")
-    public boolean setErrorOnWorker(String name, Double errorPercentage) throws Exception {
+    public boolean setErrorOnWorker(String name, Double errorPercentage, String errorCode) throws Exception {
         Worker worker = this.getWorker(name);
         try {
             worker.generateError();
             worker.setPercentError(errorPercentage);
+            worker.setErrorCode(errorCode);
         }catch (Exception ex)
         {
             throw new Exception("Failed to set error for worker: "+ ex.getMessage());

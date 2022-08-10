@@ -76,6 +76,8 @@ public class Worker {
 
     public void setPercentError(Double pErr) { this.internalJobHandler.setPercentError(pErr); }
 
+    public void setErrorCode(String errorCode) { this.internalJobHandler.setErrorCode(errorCode); }
+
     private void createWorker()
     {
         LOG.debug("In - createWorker");

@@ -2,8 +2,10 @@ package io.camunda.mockWorkers.facade;
 
 import com.google.gson.Gson;
 import io.camunda.mockWorkers.App;
+import io.camunda.mockWorkers.domain.Cluster;
 import io.camunda.mockWorkers.domain.InstanceStarter;
 import io.camunda.mockWorkers.domain.InstanceStaterStatus;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,13 +36,28 @@ public class InstanceController {
     }
 
     @GetMapping("/start-instances")
-    public boolean startInstance(String clusterName, String processId, int frequencyInSec, String variables){
+    public boolean startInstances(String clusterName, String processId, int frequencyInSec, String variables){
         InstanceStarter it = new InstanceStarter(clusterController.getCluster(clusterName), processId,frequencyInSec,variables);
         Thread t = new Thread(it);
         t.start();
         instancesMap.put(processId,t);
         threadMaps.put(t,it);
         return true;
+    }
+
+    @GetMapping("/start-instance")
+    public long startInstance(String clusterName, String processId, String variables){
+        Cluster cluster = clusterController.getCluster(clusterName);
+
+        ProcessInstanceEvent processInstanceEvent = cluster.getZeebeClient()
+                .newCreateInstanceCommand()
+                .bpmnProcessId(processId)
+                .latestVersion()
+                .variables(variables.isEmpty() ? "{}" : variables)
+                .send()
+                .join();
+
+        return processInstanceEvent.getProcessInstanceKey();
     }
 
     @GetMapping("/stop-instances")

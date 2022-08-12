@@ -257,8 +257,9 @@
                                     <input :readonly="creationRunning===true" type="text" class="form-control" aria-describedby="basic-addon1" v-model="instanceVariables" placeholder="Mock instance variables (JSON)"/>
                                 </div>
                                 <div class="input-group mb-3">
-                                    <button v-show="creationRunning===false" type="button" class="btn btn-success" v-on:click="startCreation">Start</button>
-                                    <button v-show="creationRunning===true" type="button" class="btn btn-danger" v-on:click="stopCreation">Stop</button>
+                                    <button type="button" class="btn btn-success mr-2" v-on:click="createOne">Create one</button>
+                                    <button v-show="creationRunning===false" type="button" class="btn btn-success" v-on:click="startCreation">Start creation</button>
+                                    <button v-show="creationRunning===true" type="button" class="btn btn-danger" v-on:click="stopCreation">Stop creation</button>
                                 </div>
                             </div>
                           </div>
@@ -657,7 +658,7 @@
                             if(idx === "length") break;
                             var mn = messages[idx].attributes.name.nodeValue;
                             var mid = messages[idx].attributes.id.nodeValue;
-                            console.log(wn +' - '+wt);
+                            console.log(mn +' - '+mid);
                             this.registerMessage(this.clusterChosenName, mn, mid);
                         }
 
@@ -720,6 +721,21 @@
                     stopCreation : function(){
                         axios.get(this.endpoint+'/instances/stop-instances?&processId='+this.processId).then(response => {
                             this.updateInstanceCreationStatus();
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
+                    },
+                    createOne : function(){
+                        axios.get(this.endpoint+'/instances/start-instance?clusterName='+this.clusterChosenName+'&processId='+this.processId+'&variables='+this.replaceSpecialCharsInJSON(this.instanceVariables)).then(response => {
                         }).catch(function (error) {
                         if (error.response) {
                             console.log(error.response.data);

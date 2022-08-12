@@ -70,7 +70,7 @@ public class InternalJobHandler implements JobHandler {
             int isItError = r.nextInt(100);
 
             if(isItError < this.percentError) {
-                client.newThrowErrorCommand(job.getKey()).errorCode(this.errorCode).errorMessage("Worker Error!").send();
+                client.newThrowErrorCommand(job.getKey()).errorCode(this.errorCode).errorMessage("Worker Error!").send().join();
             } else {
                 client.newCompleteCommand(job.getKey()).variables(variables).send().join();
             }
@@ -81,7 +81,7 @@ public class InternalJobHandler implements JobHandler {
             try {
                 Thread.sleep(workDurationInSec*1000);
             } catch (InterruptedException e) {
-                client.newFailCommand(job.getKey()).retries(job.getRetries() - 1).errorMessage(e.getMessage()).send();
+                client.newFailCommand(job.getKey()).retries(job.getRetries() - 1).errorMessage(e.getMessage()).send().join();
             }
             client.newCompleteCommand(job.getKey()).variables(variables).send().join();
         }

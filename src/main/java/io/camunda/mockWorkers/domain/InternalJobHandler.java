@@ -13,11 +13,17 @@ public class InternalJobHandler implements JobHandler {
     private boolean error;
     private Double percentError;
 
+    private String errorCode;
+
     public InternalJobHandler(String variables,int workDurationInSec) {
         this.variables = variables;
         this.workDurationInSec = workDurationInSec;
         this.error = false;
         this.percentError = new Double(0);
+        this.errorCode = "0";
+    }
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode.isEmpty() ? "0" : errorCode;
     }
 
     public String getStatus()
@@ -60,12 +66,11 @@ public class InternalJobHandler implements JobHandler {
     public void handle(final JobClient client, final ActivatedJob job) {
         if(error)
         {
-            //TODO: error generation dynamic get code and message in the input for error
             Random r = new Random();
             int isItError = r.nextInt(100);
 
             if(isItError < this.percentError) {
-                client.newThrowErrorCommand(job.getKey()).errorCode("0").errorMessage("Dummy Error!").send();
+                client.newThrowErrorCommand(job.getKey()).errorCode(this.errorCode).errorMessage("Worker Error!").send().join();
             } else {
                 client.newCompleteCommand(job.getKey()).variables(variables).send().join();
             }
@@ -76,7 +81,7 @@ public class InternalJobHandler implements JobHandler {
             try {
                 Thread.sleep(workDurationInSec*1000);
             } catch (InterruptedException e) {
-                client.newFailCommand(job.getKey()).retries(job.getRetries() - 1).errorMessage(e.getMessage()).send();
+                client.newFailCommand(job.getKey()).retries(job.getRetries() - 1).errorMessage(e.getMessage()).send().join();
             }
             client.newCompleteCommand(job.getKey()).variables(variables).send().join();
         }

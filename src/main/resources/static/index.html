@@ -149,7 +149,7 @@
                       </div>
                     </div>
 
-                    <div class="card" v-show="workers.length > 0">
+                    <div class="card" v-show="workers.length > 0 && clusterChosenName != ''">
                         <div class="card-header" id="headingFour">
                           <h5 class="mb-0">
                             <button class="btn btn-link" data-toggle="collapse" data-target="#collapseFour" aria-expanded="true" aria-controls="collapseFour">
@@ -399,7 +399,33 @@
                         document.getElementById("credFileLabel").innerHTML = null;
                     },
                     deleteCluster: function() {
-                        //TODO
+                        axios.get(this.endpoint+'/clusters/delete-cluster?name='+this.clusterChosenName).then(response => {
+                            this.updateListOfClusters();
+                            this.isClusterChosen = false;
+                            this.isWorkerChosen = false;
+                            this.isWorkersVisible = false;
+                            this.clusterChosenName = '';
+                            this.workerChosenName = '';
+                            this.workers = [];
+                            if(this.clusters.length != 0)
+                            {
+                                for(var idx in this.clusters)
+                                {
+                                    this.updateListOfWorkers(this.clusters[idx].name);
+                                }
+                            }
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
                     },
                     clusterChosen: function(event) {
                         this.isClusterChosen = true;
@@ -456,7 +482,29 @@
                         });
                     },
                     deleteWorker: function() {
-                        //TODO
+                        axios.get(this.endpoint+'/workers/delete-worker?name='+this.workerChosenName+'&clusterChosenName='+this.clusterChosenName).then(response => {
+                            this.isWorkerChosen = false;
+                            this.workerChosenName = '';
+                            this.workers = [];
+                            if(this.clusters.length != 0)
+                            {
+                                for(var idx in this.clusters)
+                                {
+                                    this.updateListOfWorkers(this.clusters[idx].name);
+                                }
+                            }
+                        }).catch(function (error) {
+                        if (error.response) {
+                            console.log(error.response.data);
+                            console.log(error.response.status);
+                            console.log(error.response.headers);
+                        } else if (error.request) {
+                            console.log(error.request);
+                        } else {
+                            console.log('Error', error.message);
+                        }
+                        console.log(error.config);
+                        });
                     },
                     setErrorOnWorker: function() {
                         axios.get(this.endpoint+'/workers/set-error-worker?name='+this.workerChosenName+'&errorPercentage='+this.errorPercentage+'&errorCode='+this.errorCode).then(response => {

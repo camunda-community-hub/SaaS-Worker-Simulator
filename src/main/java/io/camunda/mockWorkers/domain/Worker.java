@@ -42,11 +42,18 @@ public class Worker {
     }
 
     public void stopWorker() throws InterruptedException {
-        if(this.workerRegistration != null) this.workerRegistration.close();
-        while (!this.workerRegistration.isClosed()) {
-            System.out.println("wait");
-            Thread.sleep(100);
+        if(this.workerRegistration != null) 
+        {
+            this.workerRegistration.close();
+            while (!this.workerRegistration.isClosed()) {
+                System.out.println("wait");
+                Thread.sleep(100);
+            }
         }
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void generateError()

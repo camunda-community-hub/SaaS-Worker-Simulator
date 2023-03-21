@@ -5,12 +5,10 @@ import io.camunda.mockWorkers.App;
 import io.camunda.mockWorkers.domain.Cluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.*;
 
 @RestController
@@ -19,6 +17,9 @@ import java.util.*;
 public class ClusterController {
 
     private Map<String, Cluster> clusterMap;
+
+    //@Autowired
+    private WorkerController workerController;
 
     public ClusterController() {
         this.clusterMap = new HashMap<String, Cluster>();
@@ -50,7 +51,13 @@ public class ClusterController {
             String name
     ) throws Exception {
         try{
-            this.clusterMap.remove(name);
+
+            if(workerController.deleteAllWorkers(name))
+            {
+                Cluster c = this.clusterMap.get(name);
+                c.getZeebeClient().close();
+                this.clusterMap.remove(name);
+            }
         }catch (Exception ex)
         {
             throw new Exception("Cannot delete cluster : " + ex.getMessage());
@@ -68,5 +75,10 @@ public class ClusterController {
 
     public Cluster getCluster(String name) {
         return clusterMap.get(name);
+    }
+
+    public void setWorkerController(WorkerController workerController)
+    {
+        this.workerController = workerController;
     }
 }

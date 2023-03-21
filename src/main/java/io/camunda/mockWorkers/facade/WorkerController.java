@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
 
+import javax.annotation.PostConstruct;
+
 @RestController
 @RequestMapping("/workers")
 @CrossOrigin(origins = "*")
@@ -30,6 +32,11 @@ public class WorkerController {
     public WorkerController() {
         this.workersMap = new HashMap<String,Worker>();
         this.clusterWorkersMap = new HashMap<String,List<Worker>>();
+    }
+
+    @PostConstruct
+    public void init() {
+        clusterController.setWorkerController(this);
     }
 
     @GetMapping("/create-worker")
@@ -69,6 +76,17 @@ public class WorkerController {
         return new Gson().toJson(this.clusterWorkersMap.get(clusterChosenName));
     }
 
+    public boolean deleteAllWorkers(String clusterChosenName) throws Exception
+    {
+        List<Worker> workers = clusterWorkersMap.get(clusterChosenName);
+        for (Worker worker : workers) {
+            worker.stopWorker();
+            workersMap.remove(worker.getName());
+        }
+        clusterWorkersMap.remove(clusterChosenName);
+        return true;
+    }
+
     @GetMapping("/start-worker")
     public boolean startWorker(String name) throws Exception {
         Worker worker = this.getWorker(name);
@@ -94,9 +112,18 @@ public class WorkerController {
     }
 
     @GetMapping("/delete-worker")
-    public boolean deleteWorker(String name) throws Exception {
+    public boolean deleteWorker(String name, String clusterChosenName) throws Exception {
         try {
-            workersMap.remove(name);
+            if(this.clusterWorkersMap.get(clusterChosenName).contains( this.workersMap.get(name)))
+            {
+                this.workersMap.get(name).stopWorker();
+                workersMap.remove(name);
+                this.clusterWorkersMap.get(clusterChosenName).removeIf(wName -> wName.getName().equals(name));
+            }
+            else
+            {
+                return false;
+            }
         }catch (Exception ex)
         {
             throw new Exception("Failed to delete worker: "+ ex.getMessage());
